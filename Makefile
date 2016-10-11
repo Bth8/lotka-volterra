@@ -8,7 +8,7 @@ CC          = gcc
 CPPFLAGS    = -MD
 CFLAGS      = -std=c11
 LDFLAGS     =
-LDLIBS      =
+LDLIBS      = -lpng
 
 SRCS = lattice.c predprey.c output.c
 OBJS = $(SRCS:.c=.o)

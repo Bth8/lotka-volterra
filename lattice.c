@@ -1,33 +1,36 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "predprey.h"
 
 #define MOD(a, b) ((((a) % (b)) + (b)) % (b))
 
 #define MU 0.025
-#define LAMBDA 0.25
+#define LAMBDA 0.35
 #define SIGMA 1.0
 #define RHO_PREY 0.3
 #define RHO_PRED 0.3
-#define SIZE 256
-#define MAXTIME 2500
+#define SIZE 512
+#define MAXTIME 5000
+
+typedef struct {
+	int x;
+	int y;
+} cell_t;
 
 static inline occupant_t _get_cell(lattice_t *lattice, cell_t *cell) {
 	return lattice->lattice[cell->y * lattice->size + cell->x];
 }
 
-occupant_t get_cell(lattice_t *lattice, cell_t *cell) {
+occupant_t get_cell(lattice_t *lattice, int x, int y) {
 	if (lattice == NULL)
 		fail("get_cell(): lattice cannot be NULL");
 
-	if (cell == NULL)
-		fail("get_cell(): cell cannot be NULL");
-
-	if (cell->x < 0 || cell->x > lattice->size || cell->y < 0 ||
-			cell->y > lattice->size)
+	if (x < 0 || x > lattice->size || y < 0 || y > lattice->size)
 		fail("get_cell(): invalid cell specified");
 
-	return _get_cell(lattice, cell);
+	cell_t cell = {x, y};
+	return _get_cell(lattice, &cell);
 }
 
 static void set_cell(

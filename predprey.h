@@ -8,11 +8,6 @@ typedef enum {
 } occupant_t;
 
 typedef struct {
-	int x;
-	int y;
-} cell_t;
-
-typedef struct {
 	occupant_t *lattice;
 	float lambda;
 	float mu;
@@ -24,7 +19,7 @@ typedef struct {
 
 void lattice_init(lattice_t *lattice);
 void lattice_update(lattice_t *lattice);
-occupant_t get_cell(lattice_t *lattice, cell_t *cell);
+occupant_t get_cell(lattice_t *lattice, int x, int y);
 float predator_density(lattice_t *lattice);
 float prey_density(lattice_t *lattice);
 void lattice_teardown(lattice_t *lattice);
