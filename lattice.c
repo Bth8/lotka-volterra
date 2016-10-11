@@ -6,7 +6,7 @@
 #define MOD(a, b) ((((a) % (b)) + (b)) % (b))
 
 #define MU 0.025
-#define LAMBDA 0.35
+#define LAMBDA 0.25
 #define SIGMA 1.0
 #define RHO_PREY 0.3
 #define RHO_PRED 0.3
@@ -46,8 +46,6 @@ void lattice_init(lattice_t *lattice) {
 		fail("lattice_init(): lattice cannot be NULL");
 
 	lattice->size = SIZE;
-	if (RAND_MAX < lattice->size)
-		fail("lattice_init(): SIZE larger than RAND_MAX");
 
 	lattice->time = 0;
 	lattice->maxtime = MAXTIME;
@@ -64,10 +62,10 @@ void lattice_init(lattice_t *lattice) {
 	cell_t cell;
 	for (cell.y = 0; cell.y < lattice->size; cell.y++) {
 		for (cell.x = 0; cell.x < lattice->size; cell.x++) {
-			int r = rand();
-			if (r < RHO_PRED * RAND_MAX) {
+			uint64_t r = next_rand();
+			if (r < RHO_PRED * UINT64_MAX) {
 				set_cell(lattice, &cell, PREDATOR);
-			} else if (r < (RHO_PRED + RHO_PREY) * RAND_MAX) {
+			} else if (r < (RHO_PRED + RHO_PREY) * UINT64_MAX) {
 				set_cell(lattice, &cell, PREY);
 			} else {
 				set_cell(lattice, &cell, EMPTY);
@@ -76,7 +74,7 @@ void lattice_init(lattice_t *lattice) {
 	}
 }
 
-float predator_density(lattice_t *lattice) {
+double predator_density(lattice_t *lattice) {
 	if (lattice == NULL)
 		fail("predator_density(): lattice cannot be NULL");
 
@@ -89,10 +87,10 @@ float predator_density(lattice_t *lattice) {
 		}
 	}
 
-	return (float)predators / lattice->size / lattice->size;
+	return (double)predators / lattice->size / lattice->size;
 }
 
-float prey_density(lattice_t *lattice) {
+double prey_density(lattice_t *lattice) {
 	if (lattice == NULL)
 		fail("prey_density(): lattice cannot be NULL");
 
@@ -105,7 +103,7 @@ float prey_density(lattice_t *lattice) {
 		}
 	}
 
-	return (float)prey / lattice->size / lattice->size;
+	return (double)prey / lattice->size / lattice->size;
 }
 
 void lattice_teardown(lattice_t *lattice) {
@@ -115,8 +113,8 @@ void lattice_teardown(lattice_t *lattice) {
 }
 
 static void assign_random_cell(lattice_t *lattice, cell_t *cell) {
-	cell->x = rand() % lattice->size;
-	cell->y = rand() % lattice->size;
+	cell->x = next_rand() % lattice->size;
+	cell->y = next_rand() % lattice->size;
 }
 
 static void assign_random_neighbor(
@@ -124,7 +122,7 @@ static void assign_random_neighbor(
 		cell_t *cell,
 		cell_t *neighbor) {
 
-	int r = rand() % 4;
+	int r = next_rand() % 4;
 
 	switch(r) {
 		case 0:
@@ -147,8 +145,8 @@ static void assign_random_neighbor(
 }
 
 static void die(lattice_t *lattice, cell_t *cell) {
-	if (_get_cell(lattice, cell) == PREDATOR &&
-			rand() < lattice->mu * RAND_MAX)
+	if (_get_cell(lattice, cell) == PREDATOR && 
+			next_rand() < lattice->mu * UINT64_MAX)
 		set_cell(lattice, cell, EMPTY);
 }
 
@@ -157,7 +155,7 @@ static void eat(lattice_t *lattice, cell_t *cell) {
 		cell_t neighbor;
 		assign_random_neighbor(lattice, cell, &neighbor);
 		if (_get_cell(lattice, &neighbor) == PREY &&
-				rand() < lattice->lambda * RAND_MAX)
+				next_rand() < lattice->lambda * UINT64_MAX)
 			set_cell(lattice, &neighbor, PREDATOR);
 	}
 }
@@ -167,7 +165,7 @@ static void reproduce(lattice_t *lattice, cell_t *cell) {
 		cell_t neighbor;
 		assign_random_neighbor(lattice, cell, &neighbor);
 		if (_get_cell(lattice, &neighbor) == EMPTY &&
-				rand() < lattice->sigma * RAND_MAX)
+				next_rand() < lattice->sigma * UINT64_MAX)
 			set_cell(lattice, &neighbor, PREY);
 	}
 }
@@ -180,7 +178,7 @@ void lattice_update(lattice_t *lattice) {
 		cell_t cell;
 		assign_random_cell(lattice, &cell);
 
-		int r = rand() % 4;
+		int r = next_rand() % 4;
 		switch(r) {
 			case 0:
 				die(lattice, &cell);

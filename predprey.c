@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "predprey.h"
 
@@ -16,7 +15,7 @@ int main() {
 	if (lattice == NULL)
 		fail("main(): malloc() failed");
 
-	srand(time(NULL));
+	seed_rand();
 
 	lattice_init(lattice);
 	output_init(lattice);
