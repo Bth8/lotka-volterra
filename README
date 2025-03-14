@@ -1,2 +1,6 @@
 Runs a 2D simulation of predator-prey interactions a la Lotka-Volterra. 
 See https://arxiv.org/abs/1511.05114
+
+This project relies on ImageMagick for simulation visualizations, but is way too
+simple for me to bother with autotools and configure scripts. Just manually edit
+the MAGICK* variables in the Makefile if needed.

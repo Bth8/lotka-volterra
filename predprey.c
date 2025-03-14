@@ -53,31 +53,36 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
 		case 'm':
 			arguments->mu = strtod(arg, &end);
-			if (end == arg || *end != '\0' || !isfinite(arguments->mu) || arguments->mu < 0 || arguments->mu > 1)
+			if (end == arg || *end != '\0' || !isfinite(arguments->mu) ||
+					arguments->mu < 0 || arguments->mu > 1)
 				argp_error(state, "Invalid predator extinction rate: %s", arg);
 			break;
 
 		case 'l':
 			arguments->lambda = strtod(arg, &end);
-			if (end == arg || *end != '\0' || !isfinite(arguments->lambda) || arguments->lambda < 0 || arguments->lambda > 1)
+			if (end == arg || *end != '\0' || !isfinite(arguments->lambda) ||
+					arguments->lambda < 0 || arguments->lambda > 1)
 				argp_error(state, "Invalid predation rate: %s", arg);
 			break;
 
 		case 's':
 			arguments->sigma = strtod(arg, &end);
-			if (end == arg || *end != '\0' || !isfinite(arguments->sigma) || arguments->sigma < 0 || arguments->sigma > 1)
+			if (end == arg || *end != '\0' || !isfinite(arguments->sigma) ||
+					arguments->sigma < 0 || arguments->sigma > 1)
 				argp_error(state, "Invalid prey reproduction rate: %s", arg);
 			break;
 
 		case 'i':
 			arguments->rho_prey = strtod(arg, &end);
-			if (end == arg || *end != '\0' || !isfinite(arguments->rho_prey) || arguments->rho_prey < 0 || arguments->rho_prey > 1)
+			if (end == arg || *end != '\0' || !isfinite(arguments->rho_prey) ||
+					arguments->rho_prey < 0 || arguments->rho_prey > 1)
 				argp_error(state, "Invalid initial prey density: %s", arg);
 			break;
 
 		case 'I':
 			arguments->rho_pred = strtod(arg, &end);
-			if (end == arg || *end != '\0' || !isfinite(arguments->rho_pred) || arguments->rho_pred < 0 || arguments->rho_pred > 1)
+			if (end == arg || *end != '\0' || !isfinite(arguments->rho_pred) ||
+					arguments->rho_pred < 0 || arguments->rho_pred > 1)
 				argp_error(state, "Invalid initial predator density: %s", arg);
 			break;
 
