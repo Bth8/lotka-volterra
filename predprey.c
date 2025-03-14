@@ -150,6 +150,10 @@ int main(int argc, char **argv) {
 	// Parse command line arguments
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
+	// Some sanity checking we can't do before we've finished parsing
+	if (arguments.rho_pred + arguments.rho_prey > 1)
+		fail("main(): combined initial predator and prey densities cannot exceed 1");
+
 	lattice_t *lattice = (lattice_t *)malloc(sizeof(lattice_t));
 	if (lattice == NULL)
 		fail("main(): malloc() failed");
