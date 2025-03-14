@@ -11,7 +11,7 @@
 #define RHO_PREY 0.3
 #define RHO_PRED 0.3
 #define SIZE 512
-#define MAXTIME 5000
+#define MAXTIME 3000
 
 typedef struct {
 	int x;
@@ -41,18 +41,21 @@ static void set_cell(
 	lattice->lattice[cell->y * lattice->size + cell->x] = occupant;
 }
 
-void lattice_init(lattice_t *lattice) {
+void lattice_init(lattice_t *lattice, double mu, double lambda, double sigma,
+		double rho_pred, double rho_prey, unsigned int size,
+		unsigned int maxtime) {
+
 	if (lattice == NULL)
 		fail("lattice_init(): lattice cannot be NULL");
 
-	lattice->size = SIZE;
+	lattice->size = size;
 
 	lattice->time = 0;
-	lattice->maxtime = MAXTIME;
+	lattice->maxtime = maxtime;
 
-	lattice->lambda = LAMBDA;
-	lattice->mu = MU;
-	lattice->sigma = SIGMA;
+	lattice->lambda = lambda;
+	lattice->mu = mu;
+	lattice->sigma = sigma;
 
 	lattice->lattice = (occupant_t *)malloc(sizeof(occupant_t) * 
 			lattice->size * lattice->size);
@@ -63,9 +66,9 @@ void lattice_init(lattice_t *lattice) {
 	for (cell.y = 0; cell.y < lattice->size; cell.y++) {
 		for (cell.x = 0; cell.x < lattice->size; cell.x++) {
 			uint64_t r = next_rand();
-			if (r < RHO_PRED * UINT64_MAX) {
+			if (r < rho_pred * UINT64_MAX) {
 				set_cell(lattice, &cell, PREDATOR);
-			} else if (r < (RHO_PRED + RHO_PREY) * UINT64_MAX) {
+			} else if (r < (rho_pred + rho_prey) * UINT64_MAX) {
 				set_cell(lattice, &cell, PREY);
 			} else {
 				set_cell(lattice, &cell, EMPTY);

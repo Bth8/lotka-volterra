@@ -1,102 +1,125 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <png.h>
+#include <string.h>
+#include <MagickCore/MagickCore.h>
 
 #include "predprey.h"
 
-#define DENSITY_INTERVAL 25
-#define IMAGE_INTERVAL 50
+unsigned int report_interval = 0;
+unsigned int frame_interval;
 
-const char *basename = "out/%03d.png";
+ExceptionInfo *exception;
+Image *camera_roll;
+ImageInfo *camera_info;
+unsigned char *camera_buffer;
 
-void output_init(lattice_t *lattice) {
-	// do nothing
+void output_init(lattice_t *lattice, int quiet, unsigned int steps_per_report,
+		char *path, char *outfile, unsigned int steps_per_frame) {
+
+	if (lattice == NULL)
+		fail("output_init(): lattice cannot be NULL");
+
+	if (!quiet) {
+		report_interval = steps_per_report;
+
+		// Display run details
+		printf("Simulating %dx%d lattice for %d time steps with rates:\n"
+			"lambda = %f\nmu = %f\nsigma = %f\n", lattice->size, lattice->size,
+			lattice->maxtime, lattice->lambda, lattice->mu, lattice->sigma);
+
+		// If giving regular density reports, define columns now
+		if (steps_per_report != 0) {
+			printf("\ntime\tpredator density\tprey density\n");
+		}
+	}
+
+	frame_interval = steps_per_frame;
+
+	// Initialize image buffer and MagickCore structures
+	camera_buffer = (unsigned char *)malloc(sizeof(unsigned char) * lattice->size * lattice->size * 3);
+	if (camera_buffer == NULL)
+		fail("output_init(): malloc() failed");
+
+	MagickCoreGenesis(path, MagickTrue);
+	exception = AcquireExceptionInfo();
+	camera_roll = NewImageList();
+	camera_info = CloneImageInfo((ImageInfo *)NULL);
+	camera_info->file = fopen(outfile, "w+b");
+	if (camera_info->file == NULL)
+		fail("output_init(): couldn't open output file");
+	strcpy(camera_info->filename, outfile);
+	strcpy(camera_info->magick, "gif");
 }
 
-static void create_image(lattice_t *lattice, const char *fname) {
-	FILE *fp = fopen(fname, "w");
-	if (fp == NULL) {
-		perror("create_image()");
-		fail(NULL);
-	}
+static void draw_frame(lattice_t *lattice) {
+	// Fill buffer with pixel data
+	for (unsigned int y = 0; y < lattice->size; y++) {
+		for (unsigned int x = 0; x < lattice->size; x++) {
+			size_t buffer_idx = (y * lattice->size + x) * 3;
 
-	png_structp png_ptr = 
-		png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if (png_ptr == NULL) {
-		fclose(fp);
-		fail("create_image(): png_create_write_struct() failed");
-	}
-
-	png_infop info_ptr = png_create_info_struct(png_ptr);
-	if (info_ptr == NULL) {
-		png_destroy_write_struct(&png_ptr, NULL);
-		fclose(fp);
-		fail("create_image(): png_create_info_struct() failed");
-	}
-
-	if (setjmp(png_jmpbuf(png_ptr)) != 0) {
-		png_destroy_write_struct(&png_ptr, &info_ptr);
-		fclose(fp);
-		fail("create_image(): png creation failed");
-	}
-
-	png_init_io(png_ptr, fp);
-
-	png_set_IHDR(png_ptr, info_ptr, lattice->size, lattice->size, 8,
-			PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-			PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-
-	png_write_info(png_ptr, info_ptr);
-
-	png_bytep row = (png_bytep)malloc(3 * lattice->size * sizeof(png_byte));
-
-	for (int y = 0; y < lattice->size; y++) {
-		for (int x = 0; x < lattice->size; x++) {
 			switch(get_cell(lattice, x, y)) {
 				case PREDATOR:
-					row[3 * x] = 0xFF;
-					row[3 * x + 1] = 0;
-					row[3 * x + 2] = 0;
+					camera_buffer[buffer_idx] = 0xFF;
+					camera_buffer[buffer_idx + 1] = 0x00;
+					camera_buffer[buffer_idx + 2] = 0x00;
 					break;
+
 				case PREY:
-					row[3 * x] = 0;
-					row[3 * x + 1] = 0xFF;
-					row[3 * x + 2] = 0;
+					camera_buffer[buffer_idx] = 0x00;
+					camera_buffer[buffer_idx + 1] = 0xFF;
+					camera_buffer[buffer_idx + 2] = 0x00;
 					break;
+
 				case EMPTY:
 				default:
-					row[3 * x] = 0xFF;
-					row[3 * x + 1] = 0xFF;
-					row[3 * x + 2] = 0xFF;
-					break;
+					camera_buffer[buffer_idx] = 0xFF;
+					camera_buffer[buffer_idx + 1] = 0xFF;
+					camera_buffer[buffer_idx + 2] = 0xFF;
 			}
 		}
-		png_write_row(png_ptr, row);
 	}
 
-	free(row);
-
-	png_write_end(png_ptr, NULL);
-	png_destroy_write_struct(&png_ptr, &info_ptr);
-
-	fclose(fp);
+	// Build frame from pixel data and add to camera roll
+	Image *camera = ConstituteImage(lattice->size, lattice->size, "RGB",
+		CharPixel, camera_buffer, exception);
+	if (camera == NULL) {
+		CatchException(exception);
+		fail("draw_frame(): ConstituteImage() failed");
+	}
+	AppendImageToList(&camera_roll, camera);
 }
 
 void output(lattice_t *lattice) {
 	if (lattice == NULL)
 		fail("output(): lattice cannot be NULL");
 
-	if (lattice->time % DENSITY_INTERVAL == 0) {
-		printf("%f\t%f\n", predator_density(lattice), prey_density(lattice));
+	if (report_interval != 0 && lattice->time % report_interval == 0) {
+		printf("%d\t%f\t\t%f\n", lattice->time, predator_density(lattice),
+			prey_density(lattice));
 	}
 
-	if (lattice->time % IMAGE_INTERVAL == 0) {
-		char fname[16];
-		sprintf(fname, basename, lattice->time / IMAGE_INTERVAL);
-		create_image(lattice, fname);
+	if (lattice->time % frame_interval == 0) {
+		draw_frame(lattice);
 	}
 }
 
 void output_teardown(lattice_t *lattice) {
-	// do nothing
+	if (report_interval != 0) {
+		printf("Writing image data to %s...", camera_info->filename);
+		fflush(NULL);
+	}
+	if (WriteImage(camera_info, camera_roll, exception) != MagickTrue) {
+		CatchException(exception);
+		fail("output_teardown(): failed to write image data");
+	}
+	fclose(camera_info->file);
+	if (report_interval != 0)
+		printf(" Done!\n");
+
+	// Free everything
+	DestroyImageInfo(camera_info);
+	DestroyImageList(camera_roll);
+	DestroyExceptionInfo(exception);
+	MagickCoreTerminus();
+	free(camera_buffer);
 }
